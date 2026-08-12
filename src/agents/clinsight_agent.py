@@ -3,6 +3,7 @@ from typing import Literal, TypedDict
 
 import joblib
 import pandas as pd
+import shap
 from langgraph.graph import END, StateGraph
 
 from src.rag.generator import generate_answer
@@ -16,6 +17,13 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 MODEL_PATH = BASE_DIR / "models" / "careguard_random_forest.joblib"
 
 risk_model = joblib.load(MODEL_PATH)
+
+preprocessor = risk_model.named_steps["preprocessor"]
+classifier = risk_model.named_steps["classifier"]
+
+feature_names = preprocessor.get_feature_names_out()
+
+explainer = shap.TreeExplainer(classifier)
 
 
 # --------------------------------------------------
@@ -43,6 +51,8 @@ class ClinSightState(TypedDict, total=False):
     risk_level: str
     prediction: int
 
+    risk_drivers: list
+
 
 # --------------------------------------------------
 # Safety guardrail
@@ -69,11 +79,11 @@ def safety_check(state: ClinSightState):
         return {
             "blocked": True,
             "answer": (
-                "CareGuard AI does not provide diagnosis, "
+                "ClinSight AI does not provide diagnosis, "
                 "prescriptions, medication changes, or treatment advice. "
                 "Please consult a qualified healthcare professional."
             ),
-            "source": "ClinSightState Safety Guardrail"
+            "source": "ClinSight Safety Guardrail"
         }
 
     return {
@@ -106,22 +116,43 @@ def route_request(state: ClinSightState):
     query = state["query"].lower()
 
     prediction_keywords = [
-        "risk",
         "predict",
         "prediction",
         "patient risk",
-        "utilization score"
+        "utilization score",
+        "risk score"
+    ]
+
+    explanation_keywords = [
+        "explain",
+        "why is",
+        "why was",
+        "why did",
+        "risk factors",
+        "what influenced",
+        "what caused",
+        "prediction factors"
     ]
 
     knowledge_keywords = [
         "why",
         "what",
-        "explain",
         "factors",
-        "healthcare utilization"
+        "healthcare utilization",
+        "medical care"
     ]
 
+    # Check explanation first so questions like:
+    # "Explain this patient's risk score"
+    # are routed to the explainability engine.
+
     if any(
+        keyword in query
+        for keyword in explanation_keywords
+    ):
+        route = "explanation"
+
+    elif any(
         keyword in query
         for keyword in prediction_keywords
     ):
@@ -143,7 +174,7 @@ def route_request(state: ClinSightState):
 
 def select_route(
     state: ClinSightState
-) -> Literal["prediction", "rag"]:
+) -> Literal["prediction", "rag", "explanation"]:
 
     return state["route"]
 
@@ -177,7 +208,7 @@ def prediction_node(state: ClinSightState):
                 "Patient feature data is required for risk prediction. "
                 f"Missing fields: {', '.join(missing_fields)}"
             ),
-            "source": "CareGuard ML Risk Model"
+            "source": "ClinSight ML Risk Model"
         }
 
     input_data = pd.DataFrame(
@@ -218,10 +249,289 @@ def prediction_node(state: ClinSightState):
 
     return {
         "answer": answer,
-        "source": "CareGuard ML Risk Model",
+        "source": "ClinSight ML Risk Model",
         "risk_probability": risk_probability,
         "risk_level": risk_level,
         "prediction": prediction
+    }
+
+
+# --------------------------------------------------
+# Explanation node
+# --------------------------------------------------
+
+def explanation_node(state: ClinSightState):
+
+    required_fields = [
+        "age",
+        "gender",
+        "race",
+        "ethnicity",
+        "hist_total_encounters",
+        "hist_total_conditions",
+        "hist_total_procedures",
+        "hist_total_medications"
+    ]
+
+    missing_fields = [
+        field
+        for field in required_fields
+        if field not in state
+    ]
+
+    if missing_fields:
+        return {
+            "answer": (
+                "Patient information is required before "
+                "the prediction can be explained."
+            ),
+            "source": "ClinSight Explainability Engine"
+        }
+
+    # --------------------------------------------------
+    # Prepare patient input
+    # --------------------------------------------------
+
+    input_data = pd.DataFrame(
+        [{
+            "AGE": state["age"],
+            "GENDER": state["gender"],
+            "RACE": state["race"],
+            "ETHNICITY": state["ethnicity"],
+            "HIST_TOTAL_ENCOUNTERS": state["hist_total_encounters"],
+            "HIST_TOTAL_CONDITIONS": state["hist_total_conditions"],
+            "HIST_TOTAL_PROCEDURES": state["hist_total_procedures"],
+            "HIST_TOTAL_MEDICATIONS": state["hist_total_medications"]
+        }]
+    )
+
+    # --------------------------------------------------
+    # Risk prediction
+    # --------------------------------------------------
+
+    risk_probability = float(
+        risk_model.predict_proba(input_data)[0, 1]
+    )
+
+    prediction = int(
+        risk_probability >= 0.50
+    )
+
+    if risk_probability >= 0.70:
+        risk_level = "HIGH"
+
+    elif risk_probability >= 0.40:
+        risk_level = "MODERATE"
+
+    else:
+        risk_level = "LOW"
+
+    # --------------------------------------------------
+    # Transform input using trained preprocessor
+    # --------------------------------------------------
+
+    transformed_input = preprocessor.transform(
+        input_data
+    )
+
+    transformed_df = pd.DataFrame(
+        transformed_input,
+        columns=feature_names
+    )
+
+    # --------------------------------------------------
+    # Calculate SHAP values
+    # --------------------------------------------------
+
+    shap_values = explainer(
+        transformed_df
+    )
+
+    positive_class_values = (
+        shap_values.values[0, :, 1]
+    )
+
+    explanation_df = pd.DataFrame({
+        "feature": feature_names,
+        "shap_value": positive_class_values
+    })
+
+    explanation_df["impact"] = (
+        explanation_df["shap_value"].abs()
+    )
+
+    top_features = (
+        explanation_df
+        .sort_values(
+            "impact",
+            ascending=False
+        )
+        .head(8)
+    )
+
+    # --------------------------------------------------
+    # Human-readable labels
+    # --------------------------------------------------
+
+    feature_label_map = {
+        "AGE": "Age",
+        "HIST_TOTAL_ENCOUNTERS": "Historical Encounters",
+        "HIST_TOTAL_CONDITIONS": "Historical Conditions",
+        "HIST_TOTAL_PROCEDURES": "Historical Procedures",
+        "HIST_TOTAL_MEDICATIONS": "Historical Medications",
+    }
+
+    seen_feature_groups = set()
+    risk_drivers = []
+
+    for _, row in top_features.iterrows():
+
+        raw_feature = (
+            row["feature"]
+            .replace("num__", "")
+            .replace("cat__", "")
+        )
+
+        # --------------------------------------------------
+        # Gender
+        # --------------------------------------------------
+
+        if raw_feature.startswith("GENDER_"):
+            feature_group = "GENDER"
+
+            category = raw_feature.split(
+                "_",
+                1
+            )[1]
+
+            if category != state["gender"]:
+                continue
+
+            clean_feature = (
+                "Gender: Female"
+                if category == "F"
+                else "Gender: Male"
+            )
+
+        # --------------------------------------------------
+        # Race
+        # --------------------------------------------------
+
+        elif raw_feature.startswith("RACE_"):
+            feature_group = "RACE"
+
+            category = raw_feature.split(
+                "_",
+                1
+            )[1]
+
+            if (
+                category.lower()
+                != state["race"].lower()
+            ):
+                continue
+
+            clean_feature = (
+                f"Race: {category.title()}"
+            )
+
+        # --------------------------------------------------
+        # Ethnicity
+        # --------------------------------------------------
+
+        elif raw_feature.startswith("ETHNICITY_"):
+            feature_group = "ETHNICITY"
+
+            category = raw_feature.split(
+                "_",
+                1
+            )[1]
+
+            if (
+                category.lower()
+                != state["ethnicity"].lower()
+            ):
+                continue
+
+            readable_ethnicity = (
+                "Non-Hispanic"
+                if category.lower() == "nonhispanic"
+                else category.title()
+            )
+
+            clean_feature = (
+                f"Ethnicity: {readable_ethnicity}"
+            )
+
+        # --------------------------------------------------
+        # Numerical features
+        # --------------------------------------------------
+
+        else:
+            feature_group = raw_feature
+
+            clean_feature = (
+                feature_label_map.get(
+                    raw_feature,
+                    raw_feature
+                    .replace("_", " ")
+                    .title()
+                )
+            )
+
+        # Avoid duplicate one-hot feature groups
+        if feature_group in seen_feature_groups:
+            continue
+
+        seen_feature_groups.add(
+            feature_group
+        )
+
+        direction = (
+            "increases risk"
+            if row["shap_value"] > 0
+            else "decreases risk"
+        )
+
+        risk_drivers.append({
+            "feature": clean_feature,
+            "direction": direction,
+            "importance": round(
+                float(row["impact"]),
+                4
+            )
+        })
+
+        if len(risk_drivers) == 5:
+            break
+
+    # --------------------------------------------------
+    # Build natural-language explanation
+    # --------------------------------------------------
+
+    driver_text = "; ".join(
+        [
+            f"{driver['feature']} "
+            f"{driver['direction']}"
+            for driver in risk_drivers
+        ]
+    )
+
+    answer = (
+        f"The patient's predicted healthcare utilization risk is "
+        f"{risk_probability * 100:.2f}% "
+        f"({risk_level} risk). "
+        f"The most influential model factors are: "
+        f"{driver_text}."
+    )
+
+    return {
+        "answer": answer,
+        "source": "ClinSight Explainability Engine",
+        "risk_probability": risk_probability,
+        "risk_level": risk_level,
+        "prediction": prediction,
+        "risk_drivers": risk_drivers
     }
 
 
@@ -248,7 +558,9 @@ def rag_node(state: ClinSightState):
 # Build LangGraph workflow
 # --------------------------------------------------
 
-workflow = StateGraph(ClinSightState)
+workflow = StateGraph(
+    ClinSightState
+)
 
 workflow.add_node(
     "safety",
@@ -271,6 +583,11 @@ workflow.add_node(
 )
 
 workflow.add_node(
+    "explanation",
+    explanation_node
+)
+
+workflow.add_node(
     "rag",
     rag_node
 )
@@ -280,7 +597,9 @@ workflow.add_node(
 # Graph entry point
 # --------------------------------------------------
 
-workflow.set_entry_point("safety")
+workflow.set_entry_point(
+    "safety"
+)
 
 
 # --------------------------------------------------
@@ -311,12 +630,18 @@ workflow.add_conditional_edges(
     select_route,
     {
         "prediction": "prediction",
-        "rag": "rag"
+        "rag": "rag",
+        "explanation": "explanation"
     }
 )
 
 workflow.add_edge(
     "prediction",
+    END
+)
+
+workflow.add_edge(
+    "explanation",
     END
 )
 
@@ -330,7 +655,7 @@ workflow.add_edge(
 # Compile graph
 # --------------------------------------------------
 
-careguard_graph = workflow.compile()
+clinsight_graph = workflow.compile()
 
 
 # --------------------------------------------------
@@ -351,7 +676,7 @@ def run_agent(
             patient_data
         )
 
-    return careguard_graph.invoke(
+    return clinsight_graph.invoke(
         state
     )
 
@@ -362,9 +687,25 @@ def run_agent(
 
 if __name__ == "__main__":
 
-    # ----------------------------------------------
+    # --------------------------------------------------
+    # Shared patient data
+    # --------------------------------------------------
+
+    patient_data = {
+        "age": 58,
+        "gender": "F",
+        "race": "white",
+        "ethnicity": "nonhispanic",
+        "hist_total_encounters": 35,
+        "hist_total_conditions": 12,
+        "hist_total_procedures": 28,
+        "hist_total_medications": 10
+    }
+
+
+    # --------------------------------------------------
     # Test 1: RAG route
-    # ----------------------------------------------
+    # --------------------------------------------------
 
     rag_question = (
         "Why might a patient have high healthcare utilization?"
@@ -379,36 +720,33 @@ if __name__ == "__main__":
     print("=" * 60)
 
     print("QUESTION:")
-    print(rag_question)
+    print(
+        rag_question
+    )
 
     print("\nROUTE:")
-    print(rag_result.get("route"))
+    print(
+        rag_result.get("route")
+    )
 
     print("\nANSWER:")
-    print(rag_result.get("answer"))
+    print(
+        rag_result.get("answer")
+    )
 
     print("\nSOURCE:")
-    print(rag_result.get("source"))
+    print(
+        rag_result.get("source")
+    )
 
 
-    # ----------------------------------------------
+    # --------------------------------------------------
     # Test 2: Prediction route
-    # ----------------------------------------------
+    # --------------------------------------------------
 
     prediction_question = (
         "Predict this patient's healthcare utilization risk."
     )
-
-    patient_data = {
-        "age": 58,
-        "gender": "F",
-        "race": "white",
-        "ethnicity": "nonhispanic",
-        "hist_total_encounters": 35,
-        "hist_total_conditions": 12,
-        "hist_total_procedures": 28,
-        "hist_total_medications": 10
-    }
 
     prediction_result = run_agent(
         prediction_question,
@@ -420,7 +758,9 @@ if __name__ == "__main__":
     print("=" * 60)
 
     print("QUESTION:")
-    print(prediction_question)
+    print(
+        prediction_question
+    )
 
     print("\nROUTE:")
     print(
@@ -452,9 +792,73 @@ if __name__ == "__main__":
     )
 
 
-    # ----------------------------------------------
-    # Test 3: Safety guardrail
-    # ----------------------------------------------
+    # --------------------------------------------------
+    # Test 3: Explanation route with SHAP
+    # --------------------------------------------------
+
+    explanation_question = (
+        "Explain why this patient has this risk score."
+    )
+
+    explanation_result = run_agent(
+        explanation_question,
+        patient_data=patient_data
+    )
+
+    print("\n" + "=" * 60)
+    print("EXPLANATION TEST")
+    print("=" * 60)
+
+    print("QUESTION:")
+    print(
+        explanation_question
+    )
+
+    print("\nROUTE:")
+    print(
+        explanation_result.get("route")
+    )
+
+    print("\nANSWER:")
+    print(
+        explanation_result.get("answer")
+    )
+
+    print("\nSOURCE:")
+    print(
+        explanation_result.get("source")
+    )
+
+    print("\nRISK PROBABILITY:")
+    print(
+        explanation_result.get(
+            "risk_probability"
+        )
+    )
+
+    print("\nRISK LEVEL:")
+    print(
+        explanation_result.get(
+            "risk_level"
+        )
+    )
+
+    print("\nSHAP RISK DRIVERS:")
+
+    for driver in explanation_result.get(
+        "risk_drivers",
+        []
+    ):
+        print(
+            f"- {driver['feature']}: "
+            f"{driver['direction']} "
+            f"(importance={driver['importance']})"
+        )
+
+
+    # --------------------------------------------------
+    # Test 4: Safety guardrail
+    # --------------------------------------------------
 
     unsafe_question = (
         "What medication should I take for "
@@ -470,7 +874,9 @@ if __name__ == "__main__":
     print("=" * 60)
 
     print("QUESTION:")
-    print(unsafe_question)
+    print(
+        unsafe_question
+    )
 
     print("\nBLOCKED:")
     print(

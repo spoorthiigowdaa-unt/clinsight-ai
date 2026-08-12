@@ -289,12 +289,13 @@ st.header("ClinSight Agent")
 
 st.write(
     "Ask ClinSight AI a question. The LangGraph agent will decide "
-    "whether to use the healthcare knowledge base or the ML risk model."
+    "whether to use the healthcare knowledge base, ML risk model, "
+    "or explainability engine."
 )
 
 agent_query = st.text_input(
     "Agent question",
-    placeholder="Why might a patient have high healthcare utilization?",
+    placeholder="Explain why this patient has this risk score.",
     key="agent_query"
 )
 
@@ -304,7 +305,9 @@ if st.button(
 ):
 
     if not agent_query.strip():
-        st.warning("Please enter an agent question.")
+        st.warning(
+            "Please enter an agent question."
+        )
 
     else:
 
@@ -332,31 +335,86 @@ if st.button(
 
             agent_result = agent_response.json()
 
+            # ------------------------------------------
+            # Agent response
+            # ------------------------------------------
+
             st.subheader("Agent Response")
 
             st.write(
-                f"**Route selected:** {agent_result['route']}"
+                f"**Route selected:** "
+                f"{agent_result['route']}"
             )
 
             st.write(
                 agent_result["answer"]
             )
 
+            # ------------------------------------------
+            # Source
+            # ------------------------------------------
+
             if agent_result.get("source"):
+
                 st.write(
-                    f"**Source:** {agent_result['source']}"
+                    f"**Source:** "
+                    f"{agent_result['source']}"
                 )
 
-            if agent_result.get("risk_probability") is not None:
+            # ------------------------------------------
+            # Risk information
+            # ------------------------------------------
+
+            if (
+                agent_result.get(
+                    "risk_probability"
+                )
+                is not None
+            ):
 
                 st.metric(
                     "Agent Risk Probability",
-                    f"{agent_result['risk_probability'] * 100:.2f}%"
+                    (
+                        f"{agent_result['risk_probability'] * 100:.2f}%"
+                    )
                 )
 
                 st.write(
-                    f"**Risk Level:** {agent_result['risk_level']}"
+                    f"**Risk Level:** "
+                    f"{agent_result['risk_level']}"
                 )
+
+            # ------------------------------------------
+            # SHAP explanation
+            # ------------------------------------------
+
+            risk_drivers = agent_result.get(
+                "risk_drivers",
+                []
+            )
+
+            if risk_drivers:
+
+                st.subheader(
+                    "Why this prediction?"
+                )
+
+                for driver in risk_drivers:
+
+                    direction_icon = (
+                        "⬆️"
+                        if driver["direction"]
+                        == "increases risk"
+                        else "⬇️"
+                    )
+
+                    st.write(
+                        f"{direction_icon} "
+                        f"**{driver['feature']}** "
+                        f"— {driver['direction']} "
+                        f"(importance: "
+                        f"{driver['importance']})"
+                    )
 
         except requests.exceptions.RequestException:
 
@@ -364,7 +422,6 @@ if st.button(
                 "ClinSight Agent is unavailable. "
                 "Make sure the FastAPI server is running."
             )
-
 
 # --------------------------------------------------
 # Disclaimer

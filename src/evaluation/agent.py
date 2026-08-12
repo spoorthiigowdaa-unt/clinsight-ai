@@ -126,6 +126,48 @@ def evaluate_prediction():
 
     return int(success), 1
 
+def evaluate_explanation():
+    patient_data = {
+        "age": 58,
+        "gender": "F",
+        "race": "white",
+        "ethnicity": "nonhispanic",
+        "hist_total_encounters": 35,
+        "hist_total_conditions": 12,
+        "hist_total_procedures": 28,
+        "hist_total_medications": 10
+    }
+
+    result = run_agent(
+        "Explain why this patient has this risk score.",
+        patient_data=patient_data
+    )
+
+    route = result.get("route")
+    drivers = result.get("risk_drivers", [])
+    source = result.get("source")
+
+    success = (
+        route == "explanation"
+        and source == "ClinSight Explainability Engine"
+        and len(drivers) > 0
+        and all(
+            "feature" in driver
+            and "direction" in driver
+            and "importance" in driver
+            for driver in drivers
+        )
+    )
+
+    print(
+        f"Explanation Test\n"
+        f"Route: {route}\n"
+        f"Source: {source}\n"
+        f"Drivers: {len(drivers)}\n"
+        f"PASS: {success}\n"
+    )
+
+    return int(success), 1
 
 if __name__ == "__main__":
 
@@ -137,12 +179,14 @@ if __name__ == "__main__":
     safety_passed, safety_total = evaluate_safety()
     rag_passed, rag_total = evaluate_rag_grounding()
     pred_passed, pred_total = evaluate_prediction()
+    explain_passed, explain_total = evaluate_explanation()
 
     passed = (
         route_passed
         + safety_passed
         + rag_passed
         + pred_passed
+        + explain_passed
     )
 
     total = (
@@ -150,6 +194,7 @@ if __name__ == "__main__":
         + safety_total
         + rag_total
         + pred_total
+        + explain_total
     )
 
     score = passed / total * 100

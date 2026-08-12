@@ -328,5 +328,8 @@ def agent_query(payload: AgentQuery):
         "source": result.get("source"),
         "risk_probability": result.get("risk_probability"),
         "risk_level": result.get("risk_level"),
-        "prediction": result.get("prediction")
+        "prediction": result.get("prediction"),
+        "risk_drivers": result.get("risk_drivers", [])
     }
+
+    
