@@ -4,31 +4,31 @@
 
 **Predictive ML • Explainable AI • RAG • Agentic AI • Healthcare Safety**
 
-ClinSight AI is a portfolio-scale healthcare AI platform that combines **machine learning, explainable AI, retrieval-augmented generation (RAG), agentic AI, safety guardrails, FastAPI, and Streamlit**.
+ClinSight AI is an end-to-end healthcare AI platform that combines **machine learning, explainable AI, retrieval-augmented generation (RAG), agentic AI, safety guardrails, FastAPI, Streamlit, and Docker**.
 
-The system analyzes synthetic patient history to estimate future healthcare utilization risk, explains predictions using SHAP, answers healthcare-utilization questions using a grounded local RAG pipeline, and uses a LangGraph workflow to route requests between predictive, explainability, and knowledge-retrieval systems.
+The system analyzes synthetic patient history to estimate future healthcare utilization risk, explains individual predictions using SHAP, answers healthcare-utilization questions using a grounded local RAG pipeline, and uses LangGraph to route requests between prediction, explainability, knowledge retrieval, and safety workflows.
 
-> **Disclaimer:** ClinSight AI is built using synthetic healthcare data and is intended for educational and portfolio demonstration purposes only. It is not intended for diagnosis, treatment recommendations, or clinical decision-making.
+> **Disclaimer:** ClinSight AI uses synthetic healthcare data and is intended for educational, research, and portfolio demonstration purposes only. It is not intended for diagnosis, treatment recommendations, or clinical decision-making.
 
 ---
 
 ## 🚀 Key Features
 
 - Healthcare utilization risk prediction
-- Temporal feature engineering to reduce future-data leakage
+- Time-aware feature engineering to reduce future-data leakage
 - Logistic Regression, Random Forest, and Gradient Boosting model comparison
 - SHAP-based patient-level explainability
-- FastAPI REST API
-- Interactive Streamlit dashboard
-- Local RAG knowledge system
-- SentenceTransformer embeddings
+- Grounded Retrieval-Augmented Generation (RAG)
+- SentenceTransformer semantic embeddings
 - ChromaDB vector database
 - Local Hugging Face FLAN-T5 generation
 - LangGraph agent orchestration
-- Prediction, RAG, and explainability routing
+- RAG, prediction, and explanation routing
 - Healthcare safety guardrails
-- Automated agent evaluation
-- Docker and Docker Compose deployment
+- FastAPI REST API
+- Interactive Streamlit dashboard
+- Custom agent integration evaluation
+- Docker and Docker Compose containerization
 
 ---
 
@@ -140,7 +140,9 @@ Final modeling cohort:
 
 # ⏳ Temporal Prediction Design
 
-ClinSight AI uses a time-aware modeling approach. Historical healthcare activity is used as model input, while future healthcare utilization is used to construct the prediction target.
+ClinSight AI uses a time-aware modeling approach.
+
+Historical healthcare activity is used as model input, while future healthcare utilization is used to construct the prediction target.
 
 ```text
 HISTORICAL PERIOD
@@ -162,7 +164,7 @@ FUTURE PERIOD
 Future Healthcare Utilization
 ```
 
-This helps reduce **data leakage**, where future information could otherwise influence model training.
+This design helps reduce **data leakage**, where future information could otherwise influence model training.
 
 ---
 
@@ -186,6 +188,8 @@ High utilization      267 patients   22.96%
 ---
 
 # 🤖 Machine Learning Models
+
+Three classification algorithms were evaluated.
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
 |---|---:|---:|---:|---:|---:|
@@ -222,7 +226,7 @@ Tuning slightly increased recall but did not improve overall held-out performanc
 
 # 🔎 Explainable AI with SHAP
 
-ClinSight AI uses **SHAP** to explain patient-specific predictions.
+ClinSight AI uses **SHAP** to provide patient-specific explanations for model predictions.
 
 Example output:
 
@@ -243,6 +247,8 @@ Ethnicity: Non-Hispanic     ↓ decreases risk
 
 # ⚡ FastAPI Backend
 
+ClinSight AI exposes its ML, RAG, and agent capabilities through a FastAPI backend.
+
 Current endpoints:
 
 ```text
@@ -253,7 +259,7 @@ POST  /rag/query
 POST  /agent/query
 ```
 
-Swagger documentation:
+Local Swagger documentation:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -284,7 +290,7 @@ ClinSight AI analyzes patient demographics and historical healthcare activity to
 
 ## 📚 Grounded Healthcare RAG
 
-The RAG workflow retrieves relevant healthcare-utilization context using SentenceTransformer embeddings and ChromaDB. A local FLAN-T5 generation layer produces a grounded response and displays its source.
+The RAG workflow retrieves relevant healthcare-utilization context using SentenceTransformer embeddings and ChromaDB. A local FLAN-T5 generation layer produces a grounded response with source attribution.
 
 ![ClinSight AI Grounded RAG](docs/screenshots/rag-answer.png)
 
@@ -299,6 +305,8 @@ The LangGraph-powered ClinSight Agent routes patient-specific explanation reques
 ---
 
 # 📚 Retrieval-Augmented Generation
+
+ClinSight AI includes a local RAG pipeline for grounded healthcare-utilization question answering.
 
 ```text
 Healthcare Knowledge Documents
@@ -325,40 +333,40 @@ SentenceTransformer Embeddings
    Grounded Answer + Source
 ```
 
-### RAG Components
+## RAG Components
 
-**Knowledge base**
+### Knowledge Base
 
 ```text
 data/knowledge_base/
 ```
 
-**Document ingestion**
+### Document Ingestion
 
 ```text
 src/rag/ingest.py
 ```
 
-**Chunking**
+### Chunking
 
 ```text
 Chunk size:     500
 Chunk overlap:  100
 ```
 
-**Embedding model**
+### Embedding Model
 
 ```text
 sentence-transformers/all-MiniLM-L6-v2
 ```
 
-**Vector database**
+### Vector Database
 
 ```text
 ChromaDB
 ```
 
-**Local generator**
+### Local Generator
 
 ```text
 google/flan-t5-small
@@ -395,7 +403,7 @@ healthcare_utilization.md
 
 # 🧠 LangGraph Agent
 
-ClinSight AI uses **LangGraph** to orchestrate different AI capabilities.
+ClinSight AI uses **LangGraph** to orchestrate multiple AI capabilities.
 
 ```text
 User Request
@@ -423,16 +431,18 @@ FLAN-T5  Model
 
 The agent can route requests to:
 
-- **RAG** for healthcare-utilization knowledge questions
-- **Prediction** for patient utilization-risk scoring
-- **Explanation** for patient-specific SHAP explanations
-- **Safety Guardrail** for disallowed clinical advice
+- **RAG** — healthcare-utilization knowledge questions
+- **Prediction** — patient utilization-risk scoring
+- **Explanation** — patient-specific SHAP explanations
+- **Safety Guardrail** — disallowed clinical advice
 
 ---
 
-# 🛡️ Safety Guardrails
+# 🛡️ Healthcare Safety Guardrails
 
-The safety layer blocks requests for:
+ClinSight AI includes a safety layer designed to block requests for direct clinical advice.
+
+The safety layer blocks requests involving:
 
 - Diagnosis
 - Prescriptions
@@ -497,35 +507,35 @@ src/evaluation/agent.py
 
 ### Data & Machine Learning
 
-Python • Pandas • NumPy • Scikit-learn • Joblib
+**Python • Pandas • NumPy • Scikit-learn • Joblib**
 
 ### Machine Learning Models
 
-Logistic Regression • Random Forest • Gradient Boosting
+**Logistic Regression • Random Forest • Gradient Boosting**
 
 ### Explainable AI
 
-SHAP
+**SHAP**
 
 ### Generative AI / RAG
 
-Hugging Face Transformers • FLAN-T5 • SentenceTransformers • ChromaDB • LangChain Text Splitters
+**Hugging Face Transformers • FLAN-T5 • SentenceTransformers • ChromaDB • LangChain Text Splitters**
 
 ### Agentic AI
 
-LangGraph
+**LangGraph**
 
 ### Backend
 
-FastAPI • Pydantic • Uvicorn
+**FastAPI • Pydantic • Uvicorn**
 
 ### Frontend
 
-Streamlit • Requests
+**Streamlit • Requests**
 
 ### Engineering
 
-Git • GitHub • Docker • Docker Compose • Jupyter Notebook • VS Code
+**Git • GitHub • Docker • Docker Compose • Jupyter Notebook • VS Code**
 
 ---
 
@@ -550,9 +560,12 @@ clinsight-ai/
 │
 ├── frontend/
 │   └── app.py
+│
 ├── models/
+│
 ├── notebooks/
 │   └── 01_healthcare_data_exploration.ipynb
+│
 ├── src/
 │   ├── agents/
 │   │   └── clinsight_agent.py
@@ -568,11 +581,14 @@ clinsight-ai/
 │       ├── ingest.py
 │       ├── retriever.py
 │       └── generator.py
+│
 ├── tests/
 ├── Dockerfile
 ├── compose.yaml
 ├── .dockerignore
+├── .env.example
 ├── .gitignore
+├── LICENSE
 ├── requirements.txt
 ├── requirements-docker.txt
 └── README.md
@@ -582,14 +598,14 @@ clinsight-ai/
 
 # 💻 Local Setup
 
-## 1. Clone the repository
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/spoorthiigowdaa-unt/clinsight-ai.git
 cd clinsight-ai
 ```
 
-## 2. Create and activate a virtual environment
+## 2. Create a Virtual Environment
 
 ```bash
 python -m venv .venv
@@ -601,7 +617,7 @@ Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 ```
 
-## 3. Install dependencies
+## 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -611,6 +627,8 @@ pip install -r requirements.txt
 
 # 📚 Build the RAG Vector Store
 
+Run:
+
 ```bash
 python -m src.rag.retriever
 ```
@@ -618,6 +636,8 @@ python -m src.rag.retriever
 ---
 
 # ⚡ Start FastAPI
+
+Run:
 
 ```bash
 python -m uvicorn src.api.main:app --reload
@@ -649,6 +669,8 @@ http://localhost:8501
 
 # 🧪 Run Agent Evaluation
 
+Run:
+
 ```bash
 python -m src.evaluation.agent
 ```
@@ -663,7 +685,7 @@ Current documented result:
 
 # 🐳 Docker
 
-ClinSight AI runs as a two-service Docker Compose application.
+ClinSight AI runs locally as a two-service Docker Compose application.
 
 Build and start:
 
@@ -680,8 +702,8 @@ docker compose up -d
 Services:
 
 ```text
-clinsight-api        → FastAPI    → port 8000
-clinsight-dashboard  → Streamlit  → port 8501
+clinsight-api        → FastAPI   → port 8000
+clinsight-dashboard  → Streamlit → port 8501
 ```
 
 Verify:
@@ -693,12 +715,14 @@ docker compose ps
 Local URLs:
 
 ```text
-FastAPI Swagger:    http://localhost:8000/docs
-FastAPI Health:     http://localhost:8000/health
-Streamlit UI:       http://localhost:8501
+FastAPI Swagger:   http://localhost:8000/docs
+FastAPI Health:    http://localhost:8000/health
+Streamlit UI:      http://localhost:8501
 ```
 
 The Dockerized FastAPI and Streamlit services have been locally validated, including dashboard-to-API communication and ML inference.
+
+> **Deployment note:** The complete application is currently demonstrated locally through Docker Compose. Public cloud deployment is not required to run or evaluate the project.
 
 ---
 
@@ -738,7 +762,7 @@ Future improvements include:
 - Human-in-the-loop review
 - Cloud deployment
 - CI/CD with GitHub Actions
-- Automated unit/integration testing
+- Automated unit and integration testing
 - Healthcare fairness and subgroup evaluation
 
 ---
@@ -746,6 +770,8 @@ Future improvements include:
 # 🎯 Project Goal
 
 ClinSight AI demonstrates an end-to-end healthcare AI workflow spanning **machine learning, generative AI, RAG, agentic AI, explainability, backend engineering, containerization, safety, and evaluation**.
+
+The project is designed to demonstrate how predictive ML and generative AI components can be integrated into a single modular application while maintaining source grounding, explainability, and healthcare-specific safety boundaries.
 
 ---
 
