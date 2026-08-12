@@ -4,6 +4,10 @@ import requests
 import streamlit as st
 
 
+# --------------------------------------------------
+# API configuration
+# --------------------------------------------------
+
 API_BASE_URL = os.getenv(
     "CLINSIGHT_API_URL",
     "http://127.0.0.1:8000"
@@ -14,33 +18,85 @@ RAG_URL = f"{API_BASE_URL}/rag/query"
 AGENT_URL = f"{API_BASE_URL}/agent/query"
 
 
+# --------------------------------------------------
+# Page configuration
+# --------------------------------------------------
+
 st.set_page_config(
     page_title="ClinSight AI",
     page_icon="🏥",
     layout="wide"
 )
 
+
+# --------------------------------------------------
+# Custom styling
+# --------------------------------------------------
+
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 1200px;
+    }
+
+    h1 {
+        font-weight: 700;
+    }
+
+    h2, h3 {
+        margin-top: 1.2rem;
+    }
+
+    [data-testid="stMetric"] {
+        background-color: rgba(128, 128, 128, 0.08);
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .section-card {
+        padding: 1rem 1.2rem;
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        border-radius: 14px;
+        margin-bottom: 1rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# --------------------------------------------------
+# Header
+# --------------------------------------------------
+
 st.title("🏥 ClinSight AI")
 
-st.subheader("Healthcare Utilization Risk Intelligence")
+st.caption(
+    "Agentic Healthcare Intelligence Platform"
+)
 
 st.write(
-    "Estimate a patient's future healthcare utilization risk "
-    "using historical clinical and utilization information."
+    "Predict future healthcare utilization risk, explain model decisions, "
+    "and answer grounded healthcare-utilization questions using ML, SHAP, "
+    "RAG, and LangGraph."
 )
 
 st.divider()
 
 
 # --------------------------------------------------
-# Patient demographics
+# 1. Patient demographics
 # --------------------------------------------------
 
-st.header("Patient Information")
+st.header("1. Patient Profile")
 
 col1, col2 = st.columns(2)
 
 with col1:
+
     age = st.number_input(
         "Age",
         min_value=0,
@@ -55,6 +111,7 @@ with col1:
 
 
 with col2:
+
     race = st.selectbox(
         "Race",
         [
@@ -76,14 +133,17 @@ with col2:
 
 
 # --------------------------------------------------
-# Historical utilization
+# 2. Historical utilization
 # --------------------------------------------------
 
-st.header("Historical Healthcare Activity")
+st.header(
+    "2. Historical Healthcare Activity"
+)
 
 col3, col4 = st.columns(2)
 
 with col3:
+
     encounters = st.number_input(
         "Historical Encounters",
         min_value=0,
@@ -98,6 +158,7 @@ with col3:
 
 
 with col4:
+
     procedures = st.number_input(
         "Historical Procedures",
         min_value=0,
@@ -115,7 +176,7 @@ st.divider()
 
 
 # --------------------------------------------------
-# Prediction
+# 3. Prediction
 # --------------------------------------------------
 
 if st.button(
@@ -147,26 +208,33 @@ if st.button(
 
         result = response.json()
 
-        st.header("Risk Assessment")
+        st.header(
+            "3. Risk Assessment"
+        )
 
         metric1, metric2, metric3 = st.columns(3)
 
         with metric1:
+
             st.metric(
                 "Risk Probability",
                 f"{result['risk_percentage']}%"
             )
 
         with metric2:
+
             st.metric(
                 "Risk Level",
                 result["risk_level"]
             )
 
         with metric3:
+
             prediction_text = (
                 "YES"
-                if result["high_utilization_prediction"] == 1
+                if result[
+                    "high_utilization_prediction"
+                ] == 1
                 else "NO"
             )
 
@@ -175,54 +243,75 @@ if st.button(
                 prediction_text
             )
 
-        probability = result["risk_probability"]
+        probability = result[
+            "risk_probability"
+        ]
 
-        st.progress(probability)
+        st.progress(
+            probability
+        )
 
         if result["risk_level"] == "HIGH":
+
             st.error(
                 "High future healthcare utilization risk detected."
             )
 
         elif result["risk_level"] == "MODERATE":
+
             st.warning(
                 "Moderate future healthcare utilization risk detected."
             )
 
         else:
+
             st.success(
                 "Low future healthcare utilization risk detected."
             )
 
-        st.subheader("Why this prediction?")
+        st.subheader(
+            "Why this prediction?"
+        )
 
-        for driver in result.get("risk_drivers", []):
+        for driver in result.get(
+            "risk_drivers",
+            []
+        ):
+
             direction_icon = (
                 "⬆️"
-                if driver["direction"] == "increases risk"
+                if driver["direction"]
+                == "increases risk"
                 else "⬇️"
             )
 
             st.write(
-                f"{direction_icon} **{driver['feature']}** "
+                f"{direction_icon} "
+                f"**{driver['feature']}** "
                 f"— {driver['direction']}"
             )
 
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as exc:
 
         st.error(
             "ClinSight API is unavailable. "
             "Make sure the FastAPI server is running."
         )
 
+        st.caption(
+            str(exc)
+        )
+
 
 # --------------------------------------------------
-# RAG question answering
+# 4. RAG question answering
 # --------------------------------------------------
 
 st.divider()
 
-st.header("Ask ClinSight AI")
+st.header(
+    "4. Ask ClinSight AI"
+)
 
 st.write(
     "Ask a healthcare utilization question. "
@@ -231,18 +320,24 @@ st.write(
 
 rag_question = st.text_input(
     "Your question",
-    placeholder="Why might a patient have high healthcare utilization?"
+    placeholder=(
+        "Why might a patient have high healthcare utilization?"
+    )
 )
 
 if st.button(
-    "Ask Clinsight AI",
+    "Ask ClinSight AI",
     use_container_width=True
 ):
 
     if not rag_question.strip():
-        st.warning("Please enter a question.")
+
+        st.warning(
+            "Please enter a question."
+        )
 
     else:
+
         try:
 
             rag_response = requests.post(
@@ -255,10 +350,17 @@ if st.button(
 
             rag_response.raise_for_status()
 
-            rag_result = rag_response.json()
+            rag_result = (
+                rag_response.json()
+            )
 
-            st.subheader("ClinSight Answer")
-            st.write(rag_result["answer"])
+            st.subheader(
+                "ClinSight Answer"
+            )
+
+            st.write(
+                rag_result["answer"]
+            )
 
             sources = rag_result.get(
                 "sources",
@@ -266,26 +368,38 @@ if st.button(
             )
 
             if sources:
-                st.subheader("Sources")
+
+                st.subheader(
+                    "Sources"
+                )
 
                 for source in sources:
-                    st.write(f"- {source}")
 
-        except requests.exceptions.RequestException:
+                    st.write(
+                        f"- {source}"
+                    )
+
+        except requests.exceptions.RequestException as exc:
 
             st.error(
                 "The ClinSight RAG service is unavailable. "
                 "Make sure the FastAPI server is running."
             )
 
+            st.caption(
+                str(exc)
+            )
+
 
 # --------------------------------------------------
-# LangGraph Agent
+# 5. LangGraph Agent
 # --------------------------------------------------
 
 st.divider()
 
-st.header("ClinSight Agent")
+st.header(
+    "5. ClinSight Agent"
+)
 
 st.write(
     "Ask ClinSight AI a question. The LangGraph agent will decide "
@@ -295,7 +409,9 @@ st.write(
 
 agent_query = st.text_input(
     "Agent question",
-    placeholder="Explain why this patient has this risk score.",
+    placeholder=(
+        "Explain why this patient has this risk score."
+    ),
     key="agent_query"
 )
 
@@ -305,6 +421,7 @@ if st.button(
 ):
 
     if not agent_query.strip():
+
         st.warning(
             "Please enter an agent question."
         )
@@ -333,17 +450,26 @@ if st.button(
 
             agent_response.raise_for_status()
 
-            agent_result = agent_response.json()
+            agent_result = (
+                agent_response.json()
+            )
 
             # ------------------------------------------
             # Agent response
             # ------------------------------------------
 
-            st.subheader("Agent Response")
+            st.subheader(
+                "Agent Response"
+            )
 
-            st.write(
-                f"**Route selected:** "
-                f"{agent_result['route']}"
+            route = agent_result.get(
+                "route",
+                "unknown"
+            )
+
+            st.info(
+                f"Agent route selected: "
+                f"{route.upper()}"
             )
 
             st.write(
@@ -354,7 +480,9 @@ if st.button(
             # Source
             # ------------------------------------------
 
-            if agent_result.get("source"):
+            if agent_result.get(
+                "source"
+            ):
 
                 st.write(
                     f"**Source:** "
@@ -365,18 +493,17 @@ if st.button(
             # Risk information
             # ------------------------------------------
 
-            if (
+            risk_probability = (
                 agent_result.get(
                     "risk_probability"
                 )
-                is not None
-            ):
+            )
+
+            if risk_probability is not None:
 
                 st.metric(
                     "Agent Risk Probability",
-                    (
-                        f"{agent_result['risk_probability'] * 100:.2f}%"
-                    )
+                    f"{risk_probability * 100:.2f}%"
                 )
 
                 st.write(
@@ -388,9 +515,11 @@ if st.button(
             # SHAP explanation
             # ------------------------------------------
 
-            risk_drivers = agent_result.get(
-                "risk_drivers",
-                []
+            risk_drivers = (
+                agent_result.get(
+                    "risk_drivers",
+                    []
+                )
             )
 
             if risk_drivers:
@@ -411,17 +540,20 @@ if st.button(
                     st.write(
                         f"{direction_icon} "
                         f"**{driver['feature']}** "
-                        f"— {driver['direction']} "
-                        f"(importance: "
-                        f"{driver['importance']})"
+                        f"— {driver['direction']}"
                     )
 
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as exc:
 
             st.error(
                 "ClinSight Agent is unavailable. "
                 "Make sure the FastAPI server is running."
             )
+
+            st.caption(
+                str(exc)
+            )
+
 
 # --------------------------------------------------
 # Disclaimer
@@ -430,6 +562,8 @@ if st.button(
 st.divider()
 
 st.caption(
-    "ClinSight AI is a portfolio demonstration using synthetic "
-    "healthcare data and is not intended for clinical decision-making."
+    "ClinSight AI uses synthetic healthcare data and is intended for "
+    "educational and portfolio demonstration purposes only. "
+    "It is not intended for clinical diagnosis, treatment, "
+    "or decision-making."
 )
