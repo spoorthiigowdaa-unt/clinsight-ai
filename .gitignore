@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# CareGuard local/generated data
+data/raw/
+data/chroma_db/
+
+# Local secrets and environments
+.env
+.venv/
+
