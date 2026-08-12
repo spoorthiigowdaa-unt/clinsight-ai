@@ -1,10 +1,11 @@
 import os
+
 import requests
 import streamlit as st
 
 
 API_BASE_URL = os.getenv(
-    "Clinsight AI_API_URL",
+    "CLINSIGHT_API_URL",
     "http://127.0.0.1:8000"
 )
 
@@ -14,13 +15,12 @@ AGENT_URL = f"{API_BASE_URL}/agent/query"
 
 
 st.set_page_config(
-    page_title="Clinsight AIAI",
+    page_title="ClinSight AI",
     page_icon="🏥",
     layout="wide"
 )
 
-
-st.title("🏥 Clinsight AIAI")
+st.title("🏥 ClinSight AI")
 
 st.subheader("Healthcare Utilization Risk Intelligence")
 
@@ -211,7 +211,7 @@ if st.button(
     except requests.exceptions.RequestException:
 
         st.error(
-            "Clinsight AIAPI is unavailable. "
+            "ClinSight API is unavailable. "
             "Make sure the FastAPI server is running."
         )
 
@@ -222,11 +222,11 @@ if st.button(
 
 st.divider()
 
-st.header("Ask Clinsight AIAI")
+st.header("Ask ClinSight AI")
 
 st.write(
     "Ask a healthcare utilization question. "
-    "Clinsight AIwill answer using its local knowledge base."
+    "ClinSight AI will answer using its local knowledge base."
 )
 
 rag_question = st.text_input(
@@ -257,7 +257,7 @@ if st.button(
 
             rag_result = rag_response.json()
 
-            st.subheader("Clinsight AIAnswer")
+            st.subheader("ClinSight Answer")
             st.write(rag_result["answer"])
 
             sources = rag_result.get(
@@ -274,7 +274,7 @@ if st.button(
         except requests.exceptions.RequestException:
 
             st.error(
-                "The Clinsight AIRAG service is unavailable. "
+                "The ClinSight RAG service is unavailable. "
                 "Make sure the FastAPI server is running."
             )
 
@@ -285,10 +285,10 @@ if st.button(
 
 st.divider()
 
-st.header("Clinsight AIAgent")
+st.header("ClinSight Agent")
 
 st.write(
-    "Ask Clinsight AIa question. The LangGraph agent will decide "
+    "Ask ClinSight AI a question. The LangGraph agent will decide "
     "whether to use the healthcare knowledge base or the ML risk model."
 )
 
@@ -299,7 +299,7 @@ agent_query = st.text_input(
 )
 
 if st.button(
-    "Ask Clinsight AIAgent",
+    "Ask ClinSight Agent",
     use_container_width=True
 ):
 
@@ -361,7 +361,7 @@ if st.button(
         except requests.exceptions.RequestException:
 
             st.error(
-                "Clinsight AIAgent is unavailable. "
+                "ClinSight Agent is unavailable. "
                 "Make sure the FastAPI server is running."
             )
 
@@ -373,6 +373,6 @@ if st.button(
 st.divider()
 
 st.caption(
-    "Clinsight AIAI is a portfolio demonstration using synthetic "
+    "ClinSight AI is a portfolio demonstration using synthetic "
     "healthcare data and is not intended for clinical decision-making."
 )
