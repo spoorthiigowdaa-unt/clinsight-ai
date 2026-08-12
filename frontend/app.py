@@ -4,7 +4,7 @@ import streamlit as st
 
 
 API_BASE_URL = os.getenv(
-    "CAREGUARD_API_URL",
+    "Clinsight AI_API_URL",
     "http://127.0.0.1:8000"
 )
 
@@ -14,13 +14,13 @@ AGENT_URL = f"{API_BASE_URL}/agent/query"
 
 
 st.set_page_config(
-    page_title="CareGuard AI",
+    page_title="Clinsight AIAI",
     page_icon="🏥",
     layout="wide"
 )
 
 
-st.title("🏥 CareGuard AI")
+st.title("🏥 Clinsight AIAI")
 
 st.subheader("Healthcare Utilization Risk Intelligence")
 
@@ -211,7 +211,7 @@ if st.button(
     except requests.exceptions.RequestException:
 
         st.error(
-            "CareGuard API is unavailable. "
+            "Clinsight AIAPI is unavailable. "
             "Make sure the FastAPI server is running."
         )
 
@@ -222,11 +222,11 @@ if st.button(
 
 st.divider()
 
-st.header("Ask CareGuard AI")
+st.header("Ask Clinsight AIAI")
 
 st.write(
     "Ask a healthcare utilization question. "
-    "CareGuard will answer using its local knowledge base."
+    "Clinsight AIwill answer using its local knowledge base."
 )
 
 rag_question = st.text_input(
@@ -235,7 +235,7 @@ rag_question = st.text_input(
 )
 
 if st.button(
-    "Ask CareGuard",
+    "Ask Clinsight AI",
     use_container_width=True
 ):
 
@@ -257,7 +257,7 @@ if st.button(
 
             rag_result = rag_response.json()
 
-            st.subheader("CareGuard Answer")
+            st.subheader("Clinsight AIAnswer")
             st.write(rag_result["answer"])
 
             sources = rag_result.get(
@@ -274,7 +274,7 @@ if st.button(
         except requests.exceptions.RequestException:
 
             st.error(
-                "The CareGuard RAG service is unavailable. "
+                "The Clinsight AIRAG service is unavailable. "
                 "Make sure the FastAPI server is running."
             )
 
@@ -285,10 +285,10 @@ if st.button(
 
 st.divider()
 
-st.header("CareGuard Agent")
+st.header("Clinsight AIAgent")
 
 st.write(
-    "Ask CareGuard a question. The LangGraph agent will decide "
+    "Ask Clinsight AIa question. The LangGraph agent will decide "
     "whether to use the healthcare knowledge base or the ML risk model."
 )
 
@@ -299,7 +299,7 @@ agent_query = st.text_input(
 )
 
 if st.button(
-    "Ask CareGuard Agent",
+    "Ask Clinsight AIAgent",
     use_container_width=True
 ):
 
@@ -361,7 +361,7 @@ if st.button(
         except requests.exceptions.RequestException:
 
             st.error(
-                "CareGuard Agent is unavailable. "
+                "Clinsight AIAgent is unavailable. "
                 "Make sure the FastAPI server is running."
             )
 
@@ -373,6 +373,6 @@ if st.button(
 st.divider()
 
 st.caption(
-    "CareGuard AI is a portfolio demonstration using synthetic "
+    "Clinsight AIAI is a portfolio demonstration using synthetic "
     "healthcare data and is not intended for clinical decision-making."
 )

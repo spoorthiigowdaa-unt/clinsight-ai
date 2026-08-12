@@ -22,7 +22,7 @@ risk_model = joblib.load(MODEL_PATH)
 # LangGraph state
 # --------------------------------------------------
 
-class CareGuardState(TypedDict, total=False):
+class ClinSightState(TypedDict, total=False):
     query: str
     route: str
     answer: str
@@ -48,7 +48,7 @@ class CareGuardState(TypedDict, total=False):
 # Safety guardrail
 # --------------------------------------------------
 
-def safety_check(state: CareGuardState):
+def safety_check(state: ClinSightState):
     query = state["query"].lower()
 
     unsafe_medical_keywords = [
@@ -73,7 +73,7 @@ def safety_check(state: CareGuardState):
                 "prescriptions, medication changes, or treatment advice. "
                 "Please consult a qualified healthcare professional."
             ),
-            "source": "CareGuard Safety Guardrail"
+            "source": "ClinSightState Safety Guardrail"
         }
 
     return {
@@ -82,7 +82,7 @@ def safety_check(state: CareGuardState):
 
 
 def safety_route(
-    state: CareGuardState
+    state: ClinSightState
 ) -> Literal["blocked", "continue"]:
 
     if state.get("blocked"):
@@ -91,7 +91,7 @@ def safety_route(
     return "continue"
 
 
-def blocked_node(state: CareGuardState):
+def blocked_node(state: ClinSightState):
     return {
         "answer": state["answer"],
         "source": state["source"]
@@ -102,7 +102,7 @@ def blocked_node(state: CareGuardState):
 # Router
 # --------------------------------------------------
 
-def route_request(state: CareGuardState):
+def route_request(state: ClinSightState):
     query = state["query"].lower()
 
     prediction_keywords = [
@@ -142,7 +142,7 @@ def route_request(state: CareGuardState):
 
 
 def select_route(
-    state: CareGuardState
+    state: ClinSightState
 ) -> Literal["prediction", "rag"]:
 
     return state["route"]
@@ -152,7 +152,7 @@ def select_route(
 # Prediction node
 # --------------------------------------------------
 
-def prediction_node(state: CareGuardState):
+def prediction_node(state: ClinSightState):
 
     required_fields = [
         "age",
@@ -229,7 +229,7 @@ def prediction_node(state: CareGuardState):
 # RAG node
 # --------------------------------------------------
 
-def rag_node(state: CareGuardState):
+def rag_node(state: ClinSightState):
 
     result = generate_answer(
         query=state["query"],
@@ -248,7 +248,7 @@ def rag_node(state: CareGuardState):
 # Build LangGraph workflow
 # --------------------------------------------------
 
-workflow = StateGraph(CareGuardState)
+workflow = StateGraph(ClinSightState)
 
 workflow.add_node(
     "safety",

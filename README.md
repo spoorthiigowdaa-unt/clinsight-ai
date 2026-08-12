@@ -1,13 +1,14 @@
-# careguard-ai
-# 🏥 CareGuard AI
+# 🏥 ClinSight AI
 
-**End-to-end Healthcare AI/ML Risk Intelligence Platform**
+## Agentic Healthcare Intelligence Platform
 
-CareGuard AI is a portfolio-scale healthcare AI platform that combines **machine learning, explainable AI, retrieval-augmented generation (RAG), agentic AI, safety guardrails, FastAPI, and Streamlit**.
+**Predictive ML • Explainable AI • RAG • Agentic AI • Healthcare Safety**
+
+Clinsight AI is a portfolio-scale healthcare AI platform that combines **machine learning, explainable AI, retrieval-augmented generation (RAG), agentic AI, safety guardrails, FastAPI, and Streamlit**.
 
 The system analyzes synthetic patient history to estimate future healthcare utilization risk, explains predictions using SHAP, answers healthcare utilization questions using a grounded local RAG pipeline, and uses a LangGraph workflow to route requests between the ML and knowledge-retrieval systems.
 
-> **Disclaimer:** CareGuard AI is built using synthetic healthcare data and is intended for educational and portfolio demonstration purposes only. It is not intended for diagnosis, treatment recommendations, or clinical decision-making.
+> **Disclaimer:** Clinsight AI is built using synthetic healthcare data and is intended for educational and portfolio demonstration purposes only. It is not intended for diagnosis, treatment recommendations, or clinical decision-making.
 
 ---
 
@@ -34,7 +35,7 @@ The system analyzes synthetic patient history to estimate future healthcare util
 # 🧠 System Architecture
 
 ```text
-                         CareGuard AI
+                         Clinsight AI
                               │
                        Streamlit Dashboard
                               │
@@ -68,7 +69,7 @@ The system analyzes synthetic patient history to estimate future healthcare util
 
 # 📊 Dataset
 
-CareGuard AI uses **Synthea synthetic healthcare data**.
+Clinsight AI uses **Synthea synthetic healthcare data**.
 
 The project integrates six related healthcare datasets:
 
@@ -139,7 +140,7 @@ The final modeling cohort contains:
 
 # ⏳ Temporal Prediction Design
 
-CareGuard AI uses a time-aware modeling approach.
+Clinsight AI uses a time-aware modeling approach.
 
 Instead of using a patient's full history to predict an outcome derived from the same period, healthcare records are divided into:
 
@@ -240,7 +241,7 @@ The baseline Random Forest was therefore retained.
 
 # 🔎 Explainable AI with SHAP
 
-CareGuard AI uses **SHAP** to explain patient-specific predictions.
+Clinsight AI uses **SHAP** to explain patient-specific predictions.
 
 Instead of returning only:
 
@@ -279,7 +280,7 @@ The saved pipeline contains both preprocessing and the trained classifier so the
 
 # ⚡ FastAPI Backend
 
-CareGuard exposes ML, RAG, and agent capabilities through FastAPI.
+Clinsight AIexposes ML, RAG, and agent capabilities through FastAPI.
 
 Current endpoints:
 
@@ -344,18 +345,18 @@ Users enter:
 * Historical procedures
 * Historical medications
 
-CareGuard returns:
+Clinsight AIreturns:
 
 * Risk probability
 * Risk level
 * High-utilization prediction
 * SHAP risk drivers
 
-### Ask CareGuard AI
+### Ask Clinsight AI
 
 Users can submit healthcare-utilization questions to the RAG system.
 
-### CareGuard Agent
+### Clinsight AIAgent
 
 Users can interact with the LangGraph-powered agent, which determines which system should handle the request.
 
@@ -363,7 +364,7 @@ Users can interact with the LangGraph-powered agent, which determines which syst
 
 # 📚 Retrieval-Augmented Generation
 
-CareGuard includes a local RAG pipeline.
+Clinsight AIincludes a local RAG pipeline.
 
 ```text
 Healthcare Knowledge Documents
@@ -455,7 +456,7 @@ This demonstrates **semantic retrieval rather than simple keyword matching**.
 
 # 🧠 LangGraph Agent
 
-CareGuard uses **LangGraph** to orchestrate different AI capabilities.
+Clinsight AIuses **LangGraph** to orchestrate different AI capabilities.
 
 The agent evaluates each user request and routes it to the appropriate system.
 
@@ -523,10 +524,10 @@ Example request:
 What medication should I take for high healthcare utilization?
 ```
 
-CareGuard response:
+Clinsight AIresponse:
 
 ```text
-CareGuard AI does not provide diagnosis, prescriptions,
+Clinsight AI does not provide diagnosis, prescriptions,
 medication changes, or treatment advice.
 Please consult a qualified healthcare professional.
 ```
@@ -534,7 +535,7 @@ Please consult a qualified healthcare professional.
 The workflow routes these requests to:
 
 ```text
-CareGuard Safety Guardrail
+Clinsight AISafety Guardrail
 ```
 
 instead of the RAG or ML systems.
@@ -860,7 +861,7 @@ Future improvements include:
 
 # 🎯 Project Goal
 
-CareGuard AI demonstrates how multiple AI/ML technologies can be combined into one end-to-end healthcare intelligence system:
+Clinsight AI demonstrates how multiple AI/ML technologies can be combined into one end-to-end healthcare intelligence system:
 
 ```text
 Healthcare Data
@@ -898,6 +899,6 @@ GitHub: [spoorthiigowdaa-unt](https://github.com/spoorthiigowdaa-unt)
 
 ## ⚠️ Responsible AI Disclaimer
 
-CareGuard AI uses synthetic data and is intended solely for educational, research, and portfolio demonstration purposes.
+Clinsight AI uses synthetic data and is intended solely for educational, research, and portfolio demonstration purposes.
 
 The system does not provide medical diagnosis, prescriptions, treatment recommendations, or clinical decision support. Predictions and generated responses should not be used for real-world healthcare decisions.

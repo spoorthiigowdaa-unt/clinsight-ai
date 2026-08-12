@@ -6,12 +6,12 @@ import shap
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from src.agents.careguard_agent import run_agent
+from src.agents.clinsight_agent import run_agent
 from src.rag.generator import generate_answer
 
 
 app = FastAPI(
-    title="CareGuard AI API",
+    title="Clinsight AI API",
     description=(
         "Healthcare utilization risk prediction, explainability, "
         "RAG, and LangGraph agent API"
@@ -77,7 +77,7 @@ class AgentQuery(BaseModel):
 @app.get("/")
 def root():
     return {
-        "application": "CareGuard AI",
+        "application": "Clinsight AI",
         "status": "running"
     }
 

@@ -1,0 +1,32 @@
+services:
+
+  api:
+    build: .
+    container_name: clinsight-api
+    command: >
+      python -m uvicorn src.api.main:app
+      --host 0.0.0.0
+      --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  dashboard:
+    build: .
+    container_name: clinsight-dashboard
+    command: >
+      python -m streamlit run frontend/app.py
+      --server.address 0.0.0.0
+      --server.port 8501
+    ports:
+      - "8501:8501"
+    environment:
+      - CLINSIGHT_API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  huggingface_cache:

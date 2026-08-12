@@ -1,4 +1,4 @@
-from src.agents.careguard_agent import run_agent
+from src.agents.clinsight_agent import run_agent
 
 
 def evaluate_routing():
